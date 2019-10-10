@@ -1,58 +1,129 @@
 <template>
-  <div class="hello">
-    <h1>{{ msg }}</h1>
-    <p>
-      For a guide and recipes on how to configure / customize this project,<br>
-      check out the
-      <a href="https://cli.vuejs.org" target="_blank" rel="noopener">vue-cli documentation</a>.
-    </p>
-    <h3>Installed CLI Plugins</h3>
-    <ul>
-      <li><a href="https://github.com/vuejs/vue-cli/tree/dev/packages/%40vue/cli-plugin-babel" target="_blank" rel="noopener">babel</a></li>
-      <li><a href="https://github.com/vuejs/vue-cli/tree/dev/packages/%40vue/cli-plugin-eslint" target="_blank" rel="noopener">eslint</a></li>
-    </ul>
-    <h3>Essential Links</h3>
-    <ul>
-      <li><a href="https://vuejs.org" target="_blank" rel="noopener">Core Docs</a></li>
-      <li><a href="https://forum.vuejs.org" target="_blank" rel="noopener">Forum</a></li>
-      <li><a href="https://chat.vuejs.org" target="_blank" rel="noopener">Community Chat</a></li>
-      <li><a href="https://twitter.com/vuejs" target="_blank" rel="noopener">Twitter</a></li>
-      <li><a href="https://news.vuejs.org" target="_blank" rel="noopener">News</a></li>
-    </ul>
-    <h3>Ecosystem</h3>
-    <ul>
-      <li><a href="https://router.vuejs.org" target="_blank" rel="noopener">vue-router</a></li>
-      <li><a href="https://vuex.vuejs.org" target="_blank" rel="noopener">vuex</a></li>
-      <li><a href="https://github.com/vuejs/vue-devtools#vue-devtools" target="_blank" rel="noopener">vue-devtools</a></li>
-      <li><a href="https://vue-loader.vuejs.org" target="_blank" rel="noopener">vue-loader</a></li>
-      <li><a href="https://github.com/vuejs/awesome-vue" target="_blank" rel="noopener">awesome-vue</a></li>
-    </ul>
-  </div>
+  <v-container>
+    <v-layout
+      text-center
+      wrap
+    >
+      <v-flex xs12>
+        <v-col
+          class="d-flex"
+          cols="12"
+          sm="6"
+        >
+          <v-select
+            :items="items"
+            label="Duration"
+            solo
+            v-model="duration"
+            @change="fetchData"
+            item-value="id"
+            item-text="display"
+          ></v-select>
+        </v-col>
+        <highcharts
+          class="chart"
+          :options="chartOptions"
+          :updateArgs="updateArgs"
+        ></highcharts>
+      </v-flex>
+    </v-layout>
+  </v-container>
 </template>
 
 <script>
-export default {
-  name: 'HelloWorld',
-  props: {
-    msg: String
+import axios from "axios";
+import Highcharts from "highcharts";
+
+Highcharts.setOptions({
+  global: {
+    useUTC: false
   }
-}
+});
+export default {
+  data() {
+    return {
+      duration: "",
+      updateArgs: [true, true, { duration: 1000 }],
+
+      items: [
+        { id: "week", display: "1 Week" },
+        { id: "month", display: "1 Month" },
+        { id: "1hour", display: "1 Hour" },
+        { id: "5hours", display: "5 Hours" }
+      ],
+      title: "Transcations",
+      chartOptions: {
+        chart: {
+          type: "bubble"
+        },
+        title: {
+          text: "Transcations"
+        },
+        xAxis: {
+          // type: "datetime",
+          tickInterval: 1000 * 60 * 15,
+          labels: {
+            formatter: function() {
+              console.log(this.value);
+              return Highcharts.dateFormat("%H:%M", this.value);
+            }
+          }
+        },
+        plotOptions: {
+          series: {
+            pointInterval: 1000 * 60 * 15 //data every 15 minutes
+          }
+        },
+        series: [
+          {
+            data: [{ x: 15706962000001, y: 368 }]
+          }
+        ]
+      }
+    };
+  },
+  created() {},
+  watch: {},
+  methods: {
+    formatData: function(timeData) {
+      let finalData = [];
+      for (var data of timeData) {
+        console.log(data);
+        finalData.push({ x: data["_id"]["$date"], y: data["total_amount"] });
+        // tmp_data.push(data["total_amount"]);
+      }
+      // finalData.push(tmp_data);
+      console.log(finalData);
+      let series = { data: finalData };
+      this.chartOptions.series = [series];
+    },
+    fetchData: function() {
+      axios
+        .get("api/data?duration=" + this.duration)
+        .then(response => {
+          console.log(response.data);
+          this.formatData(response.data);
+        })
+        .catch(error => {
+          console.log(error);
+        });
+    }
+  }
+};
 </script>
 
-<!-- Add "scoped" attribute to limit CSS to this component only -->
 <style scoped>
-h3 {
-  margin: 40px 0 0;
-}
-ul {
-  list-style-type: none;
+/* input[type="color"]::-webkit-color-swatch-wrapper {
   padding: 0;
 }
-li {
-  display: inline-block;
-  margin: 0 10px;
+#colorPicker {
+  border: 0;
+  padding: 0;
+  margin: 0;
+  width: 30px;
+  height: 30px;
 }
-a {
-  color: #42b983;
-}
+.numberInput {
+  width: 30px;
+} */
 </style>
